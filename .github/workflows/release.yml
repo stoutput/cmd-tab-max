@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build universal binary
+        run: make universal
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          ARCHIVE="CmdTabMaximizer-${VERSION}-universal.zip"
+          zip -j "$ARCHIVE" dist/CmdTabMaximizer com.cmdtabmaximizer.plist
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION"  >> "$GITHUB_ENV"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.VERSION }}
+          generate_release_notes: true
+          files: ${{ env.ARCHIVE }}
+          body: |
+            ## Install
+
+            ### Homebrew (manual tap)
+            ```sh
+            brew install --no-quarantine ./CmdTabMaximizer   # from local zip
+            ```
+
+            ### Manual
+            ```sh
+            # 1. Download and unzip the release asset, then:
+            sudo cp CmdTabMaximizer /usr/local/bin/
+            # Remove quarantine flag (required for unsigned binaries)
+            xattr -dr com.apple.quarantine /usr/local/bin/CmdTabMaximizer
+
+            # 2. Install the LaunchAgent so it starts on login:
+            sed "s|__BINARY__|/usr/local/bin/CmdTabMaximizer|g" \
+                com.cmdtabmaximizer.plist \
+                > ~/Library/LaunchAgents/com.cmdtabmaximizer.plist
+            launchctl load -w ~/Library/LaunchAgents/com.cmdtabmaximizer.plist
+
+            # 3. Grant Accessibility permission when prompted, or via:
+            #    System Settings → Privacy & Security → Accessibility
+            ```
+
+            ### Uninstall
+            ```sh
+            launchctl unload -w ~/Library/LaunchAgents/com.cmdtabmaximizer.plist
+            rm ~/Library/LaunchAgents/com.cmdtabmaximizer.plist /usr/local/bin/CmdTabMaximizer
+            ```
