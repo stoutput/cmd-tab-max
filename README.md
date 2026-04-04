@@ -4,9 +4,11 @@ Automatically maximizes windows when you Cmd-Tab to them.
 
 ## Install
 
+Open a terminal window and run:
 ```sh
-curl -fsSL https://raw.githubusercontent.com/stoutput/CmdTabMax/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/stoutput/cmd-tab-max/main/install.sh | bash
 ```
+then enter your password (to strip the quarantine attribute) & enable CmdTabMaximizer in Accessibility settings
 
 The script will:
 1. Download the latest universal binary
@@ -26,8 +28,8 @@ rm ~/Library/LaunchAgents/com.cmdtabmaximizer.plist /usr/local/bin/CmdTabMaximiz
 Requires Xcode command-line tools.
 
 ```sh
-git clone https://github.com/stoutput/CmdTabMax.git
-cd CmdTabMax
+git clone https://github.com/stoutput/cmd-tab-max.git
+cd cmd-tab-max
 make install
 ```
 
