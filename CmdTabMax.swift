@@ -31,20 +31,30 @@ let eventCallback: CGEventTapCallBack = { _, type, event, _ in
         if !event.flags.contains(.maskCommand) && cmdTabWasPressed {
             cmdTabWasPressed = false
 
-            // Inject Option into the Cmd-release event. The App Switcher sees
-            // "Cmd released while Option held" and restores minimized windows.
-            event.flags.insert(.maskAlternate)
+            // Consume the real Cmd-release and replace it with a synthetic
+            // sequence posted at the HID level: Option-down → Cmd-up (Option
+            // still held) → Option-up. This is identical to what the hardware
+            // produces when the user physically holds Option, so the App
+            // Switcher sees Option held at the moment Cmd releases and restores
+            // minimized windows.
+            let cmdKeyCode = event.getIntegerValueField(.keyboardEventKeycode)
+            let src = CGEventSource(stateID: .hidSystemState)
 
-            // Release Option shortly after so it doesn't bleed into the new app.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                if let src = CGEventSource(stateID: .hidSystemState),
-                   let optUp = CGEvent(source: src) {
-                    optUp.type = .flagsChanged
-                    optUp.setIntegerValueField(.keyboardEventKeycode, value: optionKeyCode)
-                    optUp.flags = []
-                    optUp.post(tap: .cghidEventTap)
+            let sequence: [(Int64, CGEventFlags)] = [
+                (optionKeyCode, [.maskCommand, .maskAlternate]), // Option down
+                (cmdKeyCode,    [.maskAlternate]),               // Cmd up, Option held
+                (optionKeyCode, []),                             // Option up
+            ]
+            for (keycode, flags) in sequence {
+                if let e = CGEvent(source: src) {
+                    e.type = .flagsChanged
+                    e.setIntegerValueField(.keyboardEventKeycode, value: keycode)
+                    e.flags = flags
+                    e.post(tap: .cghidEventTap)
                 }
             }
+
+            return nil // consumed; replaced by the synthetic sequence above
         }
 
     default:
