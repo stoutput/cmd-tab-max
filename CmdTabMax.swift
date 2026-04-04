@@ -1,23 +1,52 @@
 import Cocoa
+import ApplicationServices
 
 private let tabKeyCode: Int64 = 48
-private let optionKeyCode: Int64 = 58 // kVK_Option (left)
+private let skippedBundleIDs: Set<String> = [
+    "com.apple.finder",
+    "com.apple.systemuiserver",
+]
 
 // MARK: - Accessibility permission check
 
 func requireAccessibility() {
     guard !AXIsProcessTrusted() else { return }
-
-    // Show the system prompt once, then poll — never exit, since KeepAlive
-    // would immediately relaunch and re-show the dialog in a loop.
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
     while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 3) }
 }
 
+// MARK: - Window handling
+
+func restoreMinimized(app: NSRunningApplication) {
+    guard !skippedBundleIDs.contains(app.bundleIdentifier ?? "") else { return }
+
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+
+    var windowsRef: CFTypeRef?
+    guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+          let windows = windowsRef as? [AXUIElement] else { return }
+
+    for window in windows {
+        var roleRef: CFTypeRef?
+        AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleRef)
+        guard (roleRef as? String) == kAXWindowRole as String else { continue }
+
+        var minRef: CFTypeRef?
+        let isMinimized = AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minRef) == .success
+            && minRef != nil
+            && CFBooleanGetValue((minRef as! CFBoolean))
+
+        if isMinimized {
+            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+        }
+    }
+}
+
 // MARK: - Event tap
 
 var cmdTabWasPressed = false
+var expectingSwitch = false
 
 let eventCallback: CGEventTapCallBack = { _, type, event, _ in
     switch type {
@@ -26,42 +55,29 @@ let eventCallback: CGEventTapCallBack = { _, type, event, _ in
             && event.flags.contains(.maskCommand) {
             cmdTabWasPressed = true
         }
-
     case .flagsChanged:
         if !event.flags.contains(.maskCommand) && cmdTabWasPressed {
             cmdTabWasPressed = false
-
-            // Consume the real Cmd-release and replace it with a synthetic
-            // sequence posted at the HID level: Option-down → Cmd-up (Option
-            // still held) → Option-up. This is identical to what the hardware
-            // produces when the user physically holds Option, so the App
-            // Switcher sees Option held at the moment Cmd releases and restores
-            // minimized windows.
-            let cmdKeyCode = event.getIntegerValueField(.keyboardEventKeycode)
-            let src = CGEventSource(stateID: .hidSystemState)
-
-            let sequence: [(Int64, CGEventFlags)] = [
-                (optionKeyCode, [.maskCommand, .maskAlternate]), // Option down
-                (cmdKeyCode,    [.maskAlternate]),               // Cmd up, Option held
-                (optionKeyCode, []),                             // Option up
-            ]
-            for (keycode, flags) in sequence {
-                if let e = CGEvent(source: src) {
-                    e.type = .flagsChanged
-                    e.setIntegerValueField(.keyboardEventKeycode, value: keycode)
-                    e.flags = flags
-                    e.post(tap: .cghidEventTap)
-                }
-            }
-
-            return nil // consumed; replaced by the synthetic sequence above
+            expectingSwitch = true
         }
-
     default:
         break
     }
-
     return Unmanaged.passRetained(event)
+}
+
+// MARK: - App activation observer
+
+NSWorkspace.shared.notificationCenter.addObserver(
+    forName: NSWorkspace.didActivateApplicationNotification,
+    object: nil,
+    queue: .main
+) { notification in
+    guard expectingSwitch else { return }
+    expectingSwitch = false
+    guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+            as? NSRunningApplication else { return }
+    restoreMinimized(app: app)
 }
 
 // MARK: - Entry point
@@ -84,11 +100,10 @@ guard let tap = CGEvent.tapCreate(
     exit(1)
 }
 
-let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
+let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
-print("✅ CmdTabMax running. Cmd-Tab as usual — switched windows will be maximized.")
-print("   Press Ctrl-C to stop.")
+print("✅ CmdTabMax running.")
 
 RunLoop.main.run()

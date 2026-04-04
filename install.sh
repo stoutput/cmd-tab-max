@@ -25,6 +25,9 @@ trap 'rm -rf "$TMP"' EXIT
 curl -fsSL "$DOWNLOAD_URL" -o "$TMP/release.zip"
 unzip -q "$TMP/release.zip" "$BINARY_NAME" -d "$TMP"
 
+FRESH_INSTALL=false
+[ ! -f "$BINARY" ] && FRESH_INSTALL=true
+
 # ── install binary ─────────────────────────────────────────────────────────────
 
 echo "Installing to $BINARY..."
@@ -33,7 +36,6 @@ if [ -w "$INSTALL_DIR" ]; then
 else
   sudo cp "$TMP/$BINARY_NAME" "$BINARY"
 fi
-chmod +x "$BINARY"
 xattr -dr com.apple.quarantine "$BINARY" 2>/dev/null || true
 
 # ── install LaunchAgent ────────────────────────────────────────────────────────
@@ -63,18 +65,20 @@ cat > "$PLIST_FILE" << EOF
 </plist>
 EOF
 
-# Unload any existing instance before bootstrapping.
+# Stop any running instance, then start the new one.
 launchctl bootout "gui/$(id -u)" "$PLIST_FILE" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
 
-# ── accessibility permission ───────────────────────────────────────────────────
+# ── done ──────────────────────────────────────────────────────────────────────
 
 echo ""
-echo "✅ CmdTabMax installed and running."
-echo ""
-echo "One last step: grant Accessibility permission when the dialog appears."
-echo "If it doesn't appear automatically, go to:"
-echo "  System Settings → Privacy & Security → Accessibility"
-echo "and enable CmdTabMax."
-echo ""
-open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+if [ "$FRESH_INSTALL" = true ]; then
+  echo "✅ CmdTabMax installed and running."
+  echo ""
+  echo "One last step: grant Accessibility permission when the dialog appears."
+  echo "If it doesn't appear, go to System Settings → Privacy & Security → Accessibility."
+  echo ""
+  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+else
+  echo "✅ CmdTabMax updated and restarted."
+fi
