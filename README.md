@@ -1,6 +1,6 @@
 # CmdTabMax
 
-Automatically restores and maximizes windows when you Cmd-Tab to them.
+MacOS, annoyingly, does not restore windows when you Cmd-Tab to them. This fixes that.
 
 ## Install
 
