@@ -25,8 +25,7 @@ trap 'rm -rf "$TMP"' EXIT
 curl -fsSL "$DOWNLOAD_URL" -o "$TMP/release.zip"
 unzip -q "$TMP/release.zip" "$BINARY_NAME" -d "$TMP"
 
-FRESH_INSTALL=false
-[ ! -f "$BINARY" ] && FRESH_INSTALL=true
+if [ -f "$BINARY" ]; then FRESH_INSTALL=false; else FRESH_INSTALL=true; fi
 
 # ── install binary ─────────────────────────────────────────────────────────────
 
