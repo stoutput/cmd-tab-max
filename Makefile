@@ -1,4 +1,4 @@
-APP   := CmdTabMaximizer
+APP   := CmdTabMax
 SWIFT := swiftc
 FLAGS := -O -framework Cocoa -framework ApplicationServices
 SRC   := $(APP).swift

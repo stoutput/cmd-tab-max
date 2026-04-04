@@ -38,8 +38,8 @@ jobs:
 
       - name: Package
         run: |
-          ARCHIVE="CmdTabMaximizer-${{ steps.version.outputs.tag }}-universal.zip"
-          zip -j "$ARCHIVE" dist/CmdTabMaximizer
+          ARCHIVE="CmdTabMax-${{ steps.version.outputs.tag }}-universal.zip"
+          zip -j "$ARCHIVE" dist/CmdTabMax
           echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Create release
@@ -62,5 +62,5 @@ jobs:
 
             ```sh
             launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist
-            rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMaximizer
+            rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMax
             ```

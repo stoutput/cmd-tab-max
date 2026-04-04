@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="stoutput/cmd-tab-max"
-BINARY_NAME="CmdTabMaximizer"
+BINARY_NAME="CmdTabMax"
 INSTALL_DIR="/usr/local/bin"
 BINARY="$INSTALL_DIR/$BINARY_NAME"
 PLIST_LABEL="com.stoutput.cmdtabmax"
@@ -56,9 +56,9 @@ cat > "$PLIST_FILE" << EOF
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/tmp/CmdTabMaximizer.log</string>
+    <string>/tmp/CmdTabMax.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/CmdTabMaximizer.log</string>
+    <string>/tmp/CmdTabMax.log</string>
 </dict>
 </plist>
 EOF
@@ -75,6 +75,6 @@ echo ""
 echo "One last step: grant Accessibility permission when the dialog appears."
 echo "If it doesn't appear automatically, go to:"
 echo "  System Settings → Privacy & Security → Accessibility"
-echo "and enable CmdTabMaximizer."
+echo "and enable CmdTabMax."
 echo ""
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"

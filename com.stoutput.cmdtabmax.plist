@@ -7,7 +7,7 @@
     <string>com.stoutput.cmdtabmax</string>
 
     <key>Version</key>
-    <string>1.0.2</string>
+    <string>1.0.3</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -21,9 +21,9 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/tmp/CmdTabMaximizer.log</string>
+    <string>/tmp/CmdTabMax.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/tmp/CmdTabMaximizer.log</string>
+    <string>/tmp/CmdTabMax.log</string>
 </dict>
 </plist>

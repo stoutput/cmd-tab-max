@@ -8,19 +8,19 @@ Open a terminal window and run:
 ```sh
 curl -fsSL https://raw.githubusercontent.com/stoutput/cmd-tab-max/main/install.sh | bash
 ```
-then enter your password (to strip the quarantine attribute) & enable CmdTabMaximizer in Accessibility settings
+then enter your password (to strip the quarantine attribute) & enable CmdTabMax in Accessibility settings
 
 The script will:
 1. Download the latest universal binary
 2. Install it to `/usr/local/bin`
 3. Register a LaunchAgent so it starts automatically on login
-4. Open Accessibility settings — enable CmdTabMaximizer there to allow it to observe keystrokes
+4. Open Accessibility settings — enable CmdTabMax there to allow it to observe keystrokes
 
 ## Uninstall
 
 ```sh
 launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist
-rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMaximizer
+rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMax
 ```
 
 ## How it works

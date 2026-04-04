@@ -18,7 +18,7 @@ func requireAccessibility() {
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
     print("⚠️  Accessibility permission required.")
-    print("   Enable CmdTabMaximizer in System Settings → Privacy & Security → Accessibility.")
+    print("   Enable CmdTabMax in System Settings → Privacy & Security → Accessibility.")
 
     while !AXIsProcessTrusted() {
         Thread.sleep(forTimeInterval: 3)
