@@ -61,6 +61,8 @@ cat > "$PLIST_FILE" << EOF
 <dict>
     <key>Label</key>
     <string>$PLIST_LABEL</string>
+    <key>Version</key>
+    <string>$LATEST_VERSION</string>
     <key>ProgramArguments</key>
     <array>
         <string>$BINARY</string>
