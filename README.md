@@ -19,8 +19,8 @@ The script will:
 ## Uninstall
 
 ```sh
-launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.cmdtabmaximizer.plist
-rm ~/Library/LaunchAgents/com.cmdtabmaximizer.plist /usr/local/bin/CmdTabMaximizer
+launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist
+rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMaximizer
 ```
 
 ## How it works
@@ -39,9 +39,4 @@ make install
 
 ## Releasing
 
-Bump the version in `VERSION` and push to `main` — a release is created automatically.
-
-```sh
-echo "1.2.0" > VERSION
-git commit -am "1.2.0" && git push
-```
+Bump the `Version` key in `com.stoutput.cmdtabmax.plist` and push to `main` — a release is created automatically.

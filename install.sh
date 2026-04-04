@@ -5,7 +5,7 @@ REPO="stoutput/cmd-tab-max"
 BINARY_NAME="CmdTabMaximizer"
 INSTALL_DIR="/usr/local/bin"
 BINARY="$INSTALL_DIR/$BINARY_NAME"
-PLIST_LABEL="com.cmdtabmaximizer"
+PLIST_LABEL="com.stoutput.cmdtabmax"
 PLIST_FILE="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 
 # ── download ───────────────────────────────────────────────────────────────────

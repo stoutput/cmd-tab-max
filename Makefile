@@ -31,7 +31,7 @@ clean:
 
 # ── local install ──────────────────────────────────────────────────────────────
 INSTALL_BIN := /usr/local/bin/$(APP)
-PLIST_SRC   := com.cmdtabmaximizer.plist
+PLIST_SRC   := com.stoutput.cmdtabmax.plist
 PLIST_DST   := $(HOME)/Library/LaunchAgents/$(PLIST_SRC)
 LAUNCHD_UID := gui/$$(id -u)
 

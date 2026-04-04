@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - VERSION
+      - com.stoutput.cmdtabmax.plist
 
 permissions:
   contents: write
@@ -22,7 +22,9 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "tag=v$(cat VERSION)" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print :Version" com.stoutput.cmdtabmax.plist)
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Tag
         run: |
@@ -59,6 +61,6 @@ jobs:
             ## Uninstall
 
             ```sh
-            launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.cmdtabmaximizer.plist
-            rm ~/Library/LaunchAgents/com.cmdtabmaximizer.plist /usr/local/bin/CmdTabMaximizer
+            launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist
+            rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMaximizer
             ```
