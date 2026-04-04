@@ -1,4 +1,5 @@
 # CmdTabMax
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Y8Y81X7LER)
 
 MacOS, annoyingly, does not restore windows when you Cmd-Tab to them. This fixes that.
 
