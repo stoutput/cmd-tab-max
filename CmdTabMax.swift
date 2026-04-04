@@ -3,6 +3,7 @@ import ApplicationServices
 
 private let tabKeyCode: Int64 = 48
 private let windowSwitchDelay: TimeInterval = 0.15
+private let unminimizeDelay: TimeInterval = 0.35
 private let skippedBundleIDs: Set<String> = [
     "com.apple.finder",
     "com.apple.systemuiserver",
@@ -51,21 +52,7 @@ func screenContaining(_ window: AXUIElement, primaryScreenHeight: CGFloat) -> NS
     return NSScreen.screens.first(where: { $0.frame.contains(appKitPoint) }) ?? NSScreen.main
 }
 
-func maximizeFrontmostWindow() {
-    guard let app = NSWorkspace.shared.frontmostApplication,
-          !skippedBundleIDs.contains(app.bundleIdentifier ?? "") else { return }
-
-    let axApp = AXUIElementCreateApplication(app.processIdentifier)
-
-    var windowsRef: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-          let windows = windowsRef as? [AXUIElement],
-          let window = windows.first else { return }
-
-    var roleRef: CFTypeRef?
-    AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleRef)
-    guard (roleRef as? String) == kAXWindowRole as String else { return }
-
+func resizeToScreen(_ window: AXUIElement) {
     let primaryH = NSScreen.screens.first?.frame.height ?? 0
     let screen = screenContaining(window, primaryScreenHeight: primaryH) ?? NSScreen.main!
     let targetFrame = quartzFrame(for: screen.visibleFrame, primaryScreenHeight: primaryH)
@@ -74,10 +61,50 @@ func maximizeFrontmostWindow() {
     if let axPos = AXValueCreate(.cgPoint, &origin) {
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, axPos)
     }
-
     var size = targetFrame.size
     if let axSize = AXValueCreate(.cgSize, &size) {
         AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, axSize)
+    }
+}
+
+func maximizeFrontmostWindow() {
+    guard let app = NSWorkspace.shared.frontmostApplication,
+          !skippedBundleIDs.contains(app.bundleIdentifier ?? "") else { return }
+
+    let axApp = AXUIElementCreateApplication(app.processIdentifier)
+
+    // Prefer the focused window, then the main window, then the first in the list.
+    // This correctly handles apps with minimized windows where windows.first may
+    // not be the one macOS is about to restore.
+    var ref: CFTypeRef?
+    let window: AXUIElement
+    if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &ref) == .success, ref != nil {
+        window = ref as! AXUIElement
+    } else if AXUIElementCopyAttributeValue(axApp, kAXMainWindowAttribute as CFString, &ref) == .success, ref != nil {
+        window = ref as! AXUIElement
+    } else {
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement],
+              let first = windows.first else { return }
+        window = first
+    }
+
+    var roleRef: CFTypeRef?
+    AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleRef)
+    guard (roleRef as? String) == kAXWindowRole as String else { return }
+
+    // If the window is minimized, restore it first and wait for the dock
+    // animation to finish before resizing.
+    var minimizedRef: CFTypeRef?
+    if AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedRef) == .success,
+       (minimizedRef as? Bool) == true {
+        AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+        DispatchQueue.main.asyncAfter(deadline: .now() + unminimizeDelay) {
+            resizeToScreen(window)
+        }
+    } else {
+        resizeToScreen(window)
     }
 }
 
