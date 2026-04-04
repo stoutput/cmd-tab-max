@@ -2,7 +2,7 @@
 
 Automatically maximizes windows when you Cmd-Tab to them.
 
-## Install
+## Install/Update
 
 Open a terminal window and run:
 ```sh
@@ -23,6 +23,10 @@ launchctl bootout "gui/$(id -u)" ~/Library/LaunchAgents/com.cmdtabmaximizer.plis
 rm ~/Library/LaunchAgents/com.cmdtabmaximizer.plist /usr/local/bin/CmdTabMaximizer
 ```
 
+## How it works
+
+CmdTabMax installs a global keyboard event tap. When it detects that Cmd is released after a Cmd-Tab sequence, it resizes the frontmost window to fill the visible area of its screen (respecting the menu bar and Dock). It uses the macOS Accessibility API — no private frameworks.
+
 ## Build from source
 
 Requires Xcode command-line tools.
@@ -32,10 +36,6 @@ git clone https://github.com/stoutput/cmd-tab-max.git
 cd cmd-tab-max
 make install
 ```
-
-## How it works
-
-CmdTabMax installs a global keyboard event tap. When it detects that Cmd is released after a Cmd-Tab sequence, it resizes the frontmost window to fill the visible area of its screen (respecting the menu bar and Dock). It uses the macOS Accessibility API — no private frameworks.
 
 ## Releasing
 

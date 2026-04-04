@@ -11,13 +11,19 @@ private let skippedBundleIDs: Set<String> = [
 // MARK: - Accessibility permission check
 
 func requireAccessibility() {
-    if !AXIsProcessTrusted() {
-        let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        AXIsProcessTrustedWithOptions(opts)
-        print("⚠️  Accessibility permission required.")
-        print("   Grant it in System Settings → Privacy & Security → Accessibility, then rerun.")
-        exit(1)
+    guard !AXIsProcessTrusted() else { return }
+
+    // Show the system prompt once, then poll — never exit, since KeepAlive
+    // would immediately relaunch and re-show the dialog in a loop.
+    let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+    AXIsProcessTrustedWithOptions(opts)
+    print("⚠️  Accessibility permission required.")
+    print("   Enable CmdTabMaximizer in System Settings → Privacy & Security → Accessibility.")
+
+    while !AXIsProcessTrusted() {
+        Thread.sleep(forTimeInterval: 3)
     }
+    print("✅ Accessibility permission granted.")
 }
 
 // MARK: - Window maximizer
