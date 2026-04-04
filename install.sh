@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-REPO="stoutput/CmdTabMax"
+REPO="stoutput/cmd-tab-max"
 BINARY_NAME="CmdTabMaximizer"
 INSTALL_DIR="/usr/local/bin"
 BINARY="$INSTALL_DIR/$BINARY_NAME"
