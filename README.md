@@ -1,20 +1,14 @@
 # CmdTabMax
 
-Automatically maximizes windows when you Cmd-Tab to them.
+Automatically restores and maximizes windows when you Cmd-Tab to them.
 
-## Install/Update
+## Install
 
-Open a terminal window and run:
 ```sh
 curl -fsSL https://raw.githubusercontent.com/stoutput/cmd-tab-max/main/install.sh | bash
 ```
-then enter your password (to strip the quarantine attribute) & enable CmdTabMax in Accessibility settings
 
-The script will:
-1. Download the latest universal binary
-2. Install it to `/usr/local/bin`
-3. Register a LaunchAgent so it starts automatically on login
-4. Open Accessibility settings — enable CmdTabMax there to allow it to observe keystrokes
+On first launch you'll be prompted to grant Accessibility permission — required for the keyboard event tap.
 
 ## Uninstall
 
@@ -25,7 +19,9 @@ rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMax
 
 ## How it works
 
-CmdTabMax installs a global keyboard event tap. When it detects that Cmd is released after a Cmd-Tab sequence, it resizes the frontmost window to fill the visible area of its screen (respecting the menu bar and Dock). It uses the macOS Accessibility API — no private frameworks.
+CmdTabMax installs a global keyboard event tap. When it detects Cmd being released after a Cmd-Tab sequence, it injects the Option modifier into that event before the system processes it. This triggers macOS's built-in App Switcher behaviour for Option+Cmd-release, which restores any minimized windows of the switched-to app. The Option key is then released 50ms later so it doesn't bleed into the new app.
+
+No private frameworks. No window resizing via Accessibility API.
 
 ## Build from source
 

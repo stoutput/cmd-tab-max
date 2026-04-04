@@ -1,13 +1,7 @@
 import Cocoa
-import ApplicationServices
 
 private let tabKeyCode: Int64 = 48
-private let windowSwitchDelay: TimeInterval = 0.15
-private let unminimizeDelay: TimeInterval = 0.35
-private let skippedBundleIDs: Set<String> = [
-    "com.apple.finder",
-    "com.apple.systemuiserver",
-]
+private let optionKeyCode: Int64 = 58 // kVK_Option (left)
 
 // MARK: - Accessibility permission check
 
@@ -18,94 +12,7 @@ func requireAccessibility() {
     // would immediately relaunch and re-show the dialog in a loop.
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
-    print("⚠️  Accessibility permission required.")
-    print("   Enable CmdTabMax in System Settings → Privacy & Security → Accessibility.")
-
-    while !AXIsProcessTrusted() {
-        Thread.sleep(forTimeInterval: 3)
-    }
-    print("✅ Accessibility permission granted.")
-}
-
-// MARK: - Window maximizer
-
-/// Converts an NSScreen visibleFrame (AppKit coords, origin bottom-left) to
-/// Quartz/AX coords (origin top-left of the primary screen).
-func quartzFrame(for nsFrame: NSRect, primaryScreenHeight: CGFloat) -> NSRect {
-    NSRect(
-        x: nsFrame.origin.x,
-        y: primaryScreenHeight - nsFrame.origin.y - nsFrame.height,
-        width: nsFrame.width,
-        height: nsFrame.height
-    )
-}
-
-func screenContaining(_ window: AXUIElement, primaryScreenHeight: CGFloat) -> NSScreen? {
-    var posRef: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posRef) == .success,
-          posRef != nil else { return NSScreen.main }
-
-    var point = CGPoint.zero
-    AXValueGetValue(posRef as! AXValue, .cgPoint, &point)
-
-    let appKitPoint = NSPoint(x: point.x, y: primaryScreenHeight - point.y)
-    return NSScreen.screens.first(where: { $0.frame.contains(appKitPoint) }) ?? NSScreen.main
-}
-
-func resizeToScreen(_ window: AXUIElement) {
-    let primaryH = NSScreen.screens.first?.frame.height ?? 0
-    let screen = screenContaining(window, primaryScreenHeight: primaryH) ?? NSScreen.main!
-    let targetFrame = quartzFrame(for: screen.visibleFrame, primaryScreenHeight: primaryH)
-
-    var origin = targetFrame.origin
-    if let axPos = AXValueCreate(.cgPoint, &origin) {
-        AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, axPos)
-    }
-    var size = targetFrame.size
-    if let axSize = AXValueCreate(.cgSize, &size) {
-        AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, axSize)
-    }
-}
-
-func maximizeFrontmostWindow() {
-    guard let app = NSWorkspace.shared.frontmostApplication,
-          !skippedBundleIDs.contains(app.bundleIdentifier ?? "") else { return }
-
-    let axApp = AXUIElementCreateApplication(app.processIdentifier)
-
-    // Prefer the focused window, then the main window, then the first in the list.
-    // This correctly handles apps with minimized windows where windows.first may
-    // not be the one macOS is about to restore.
-    var ref: CFTypeRef?
-    let window: AXUIElement
-    if AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &ref) == .success, ref != nil {
-        window = ref as! AXUIElement
-    } else if AXUIElementCopyAttributeValue(axApp, kAXMainWindowAttribute as CFString, &ref) == .success, ref != nil {
-        window = ref as! AXUIElement
-    } else {
-        var windowsRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
-              let windows = windowsRef as? [AXUIElement],
-              let first = windows.first else { return }
-        window = first
-    }
-
-    var roleRef: CFTypeRef?
-    AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleRef)
-    guard (roleRef as? String) == kAXWindowRole as String else { return }
-
-    // If the window is minimized, restore it first and wait for the dock
-    // animation to finish before resizing.
-    var minimizedRef: CFTypeRef?
-    if AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minimizedRef) == .success,
-       (minimizedRef as? Bool) == true {
-        AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
-        DispatchQueue.main.asyncAfter(deadline: .now() + unminimizeDelay) {
-            resizeToScreen(window)
-        }
-    } else {
-        resizeToScreen(window)
-    }
+    while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 3) }
 }
 
 // MARK: - Event tap
@@ -123,9 +30,20 @@ let eventCallback: CGEventTapCallBack = { _, type, event, _ in
     case .flagsChanged:
         if !event.flags.contains(.maskCommand) && cmdTabWasPressed {
             cmdTabWasPressed = false
-            // Brief delay lets macOS finish the app-switch animation.
-            DispatchQueue.main.asyncAfter(deadline: .now() + windowSwitchDelay) {
-                maximizeFrontmostWindow()
+
+            // Inject Option into the Cmd-release event. The App Switcher sees
+            // "Cmd released while Option held" and restores minimized windows.
+            event.flags.insert(.maskAlternate)
+
+            // Release Option shortly after so it doesn't bleed into the new app.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                if let src = CGEventSource(stateID: .hidSystemState),
+                   let optUp = CGEvent(source: src) {
+                    optUp.type = .flagsChanged
+                    optUp.setIntegerValueField(.keyboardEventKeycode, value: optionKeyCode)
+                    optUp.flags = []
+                    optUp.post(tap: .cghidEventTap)
+                }
             }
         }
 
