@@ -10,7 +10,12 @@ private let skippedBundleIDs: Set<String> = [
 // MARK: - Accessibility permission check
 
 func requireAccessibility() {
-    guard !AXIsProcessTrusted() else { return }
+    // Retry silently first — TCC may not be ready immediately at login.
+    for _ in 0..<20 {
+        if AXIsProcessTrusted() { return }
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+    // Still not trusted after 10 seconds — prompt and wait.
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
     while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 3) }
