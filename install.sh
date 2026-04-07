@@ -105,19 +105,31 @@ cat > "$PLIST_FILE" << EOF
 </plist>
 EOF
 
+# ── restart & accessibility ────────────────────────────────────────────────────
+
 launchctl bootout "gui/$(id -u)" "$PLIST_FILE" 2>/dev/null || true
+sleep 1
 launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
 
-# ── done ──────────────────────────────────────────────────────────────────────
+echo ""
+echo "✅ CmdTabMax $LATEST_VERSION installed."
+echo ""
+
+if [ "$FRESH_INSTALL" = false ]; then
+  # Each binary update changes the code signature, invalidating the old TCC
+  # grant. Reset it so a fresh prompt appears for the new binary.
+  if tccutil reset Accessibility "$PLIST_LABEL" 2>/dev/null; then
+    echo "Accessibility permission reset for the new version."
+    echo "Grant it when the System Settings prompt appears."
+    echo "CmdTabMax will start working immediately — no logout required."
+  else
+    echo "Action required: open System Settings → Privacy & Security → Accessibility,"
+    echo "click − to remove the existing CmdTabMax entry, then re-add it."
+    echo "CmdTabMax will start working as soon as you grant access — no logout required."
+  fi
+else
+  echo "One last step: grant Accessibility permission when the dialog appears."
+fi
 
 echo ""
-if [ "$FRESH_INSTALL" = true ]; then
-  echo "✅ CmdTabMax $LATEST_VERSION installed and running."
-  echo ""
-  echo "One last step: grant Accessibility permission when the dialog appears."
-  echo "If it doesn't appear, go to System Settings → Privacy & Security → Accessibility."
-  echo ""
-  open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-else
-  echo "✅ CmdTabMax updated to $LATEST_VERSION and restarted."
-fi
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
