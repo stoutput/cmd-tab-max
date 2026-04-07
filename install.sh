@@ -3,8 +3,8 @@ set -euo pipefail
 
 REPO="stoutput/cmd-tab-max"
 BINARY_NAME="CmdTabMax"
-INSTALL_DIR="/usr/local/bin"
-BINARY="$INSTALL_DIR/$BINARY_NAME"
+APP_BUNDLE="$HOME/Applications/CmdTabMax.app"
+BINARY="$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 PLIST_LABEL="com.stoutput.cmdtabmax"
 PLIST_FILE="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 
@@ -22,8 +22,7 @@ if [ -f "$PLIST_FILE" ]; then
   fi
 fi
 
-FRESH_INSTALL=true
-[ -f "$BINARY" ] && FRESH_INSTALL=false
+if [ -d "$APP_BUNDLE" ]; then FRESH_INSTALL=false; else FRESH_INSTALL=true; fi
 
 # ── download ───────────────────────────────────────────────────────────────────
 
@@ -42,13 +41,40 @@ trap 'rm -rf "$TMP"' EXIT
 curl -fsSL "$DOWNLOAD_URL" -o "$TMP/release.zip"
 unzip -q "$TMP/release.zip" "$BINARY_NAME" -d "$TMP"
 
-# ── install binary ─────────────────────────────────────────────────────────────
+# ── install app bundle ─────────────────────────────────────────────────────────
 
-echo "Installing to $BINARY..."
-if ! cp "$TMP/$BINARY_NAME" "$BINARY" 2>/dev/null; then
-  sudo </dev/tty cp "$TMP/$BINARY_NAME" "$BINARY"
-fi
-xattr -dr com.apple.quarantine "$BINARY" 2>/dev/null || true
+echo "Installing to $APP_BUNDLE..."
+
+mkdir -p "$APP_BUNDLE/Contents/MacOS"
+
+# Info.plist gives TCC a stable CFBundleIdentifier to track across updates,
+# so the accessibility grant survives binary changes.
+cat > "$APP_BUNDLE/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.stoutput.cmdtabmax</string>
+    <key>CFBundleName</key>
+    <string>CmdTabMax</string>
+    <key>CFBundleVersion</key>
+    <string>$LATEST_VERSION</string>
+    <key>CFBundleExecutable</key>
+    <string>$BINARY_NAME</string>
+    <key>LSUIElement</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+cp "$TMP/$BINARY_NAME" "$BINARY"
+xattr -dr com.apple.quarantine "$APP_BUNDLE" 2>/dev/null || true
+codesign --force --deep --sign - "$APP_BUNDLE" 2>/dev/null || true
+
+# Migrate: remove old bare binary if present from a previous install.
+rm -f "/usr/local/bin/$BINARY_NAME" 2>/dev/null || true
 
 # ── install LaunchAgent ────────────────────────────────────────────────────────
 
@@ -79,7 +105,6 @@ cat > "$PLIST_FILE" << EOF
 </plist>
 EOF
 
-# Stop any running instance, then start the new one.
 launchctl bootout "gui/$(id -u)" "$PLIST_FILE" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
 
