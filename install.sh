@@ -107,29 +107,33 @@ EOF
 
 # ── restart & accessibility ────────────────────────────────────────────────────
 
+echo ""
+echo "✅ CmdTabMax $LATEST_VERSION installed."
+echo ""
+
+# Each binary update changes the code signature, invalidating the old TCC grant.
+# Reset it now so a fresh prompt appears, then wait for the user to grant before
+# doing the final restart (a running process can't pick up a new TCC grant).
+if [ "$FRESH_INSTALL" = false ]; then
+  if ! tccutil reset Accessibility "$PLIST_LABEL" 2>/dev/null; then
+    echo "Please open System Settings → Privacy & Security → Accessibility,"
+    echo "click − to remove the existing CmdTabMax entry, then continue."
+    echo ""
+  fi
+fi
+
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+
+launchctl bootout "gui/$(id -u)" "$PLIST_FILE" 2>/dev/null || true
+sleep 1
+launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
+
+echo "Grant Accessibility access in System Settings, then press Enter..."
+read -r </dev/tty
+
 launchctl bootout "gui/$(id -u)" "$PLIST_FILE" 2>/dev/null || true
 sleep 1
 launchctl bootstrap "gui/$(id -u)" "$PLIST_FILE"
 
 echo ""
-echo "✅ CmdTabMax $LATEST_VERSION installed."
-echo ""
-
-if [ "$FRESH_INSTALL" = false ]; then
-  # Each binary update changes the code signature, invalidating the old TCC
-  # grant. Reset it so a fresh prompt appears for the new binary.
-  if tccutil reset Accessibility "$PLIST_LABEL" 2>/dev/null; then
-    echo "Accessibility permission reset for the new version."
-    echo "Grant it when the System Settings prompt appears."
-    echo "CmdTabMax will start working immediately — no logout required."
-  else
-    echo "Action required: open System Settings → Privacy & Security → Accessibility,"
-    echo "click − to remove the existing CmdTabMax entry, then re-add it."
-    echo "CmdTabMax will start working as soon as you grant access — no logout required."
-  fi
-else
-  echo "One last step: grant Accessibility permission when the dialog appears."
-fi
-
-echo ""
-open "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+echo "Done! CmdTabMax is running."
