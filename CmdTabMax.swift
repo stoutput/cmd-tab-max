@@ -1,6 +1,9 @@
 import Cocoa
 import ApplicationServices
 
+// Disable stdout buffering so log output reaches the file immediately.
+setbuf(stdout, nil)
+
 private let tabKeyCode: Int64 = 48
 private let skippedBundleIDs: Set<String> = [
     "com.apple.finder",
@@ -15,10 +18,12 @@ func requireAccessibility() {
         if AXIsProcessTrusted() { return }
         Thread.sleep(forTimeInterval: 0.5)
     }
+    print("Accessibility not granted — opening System Settings")
     // Still not trusted after 10 seconds — prompt and wait.
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
     while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 3) }
+    print("Accessibility granted")
 }
 
 // MARK: - Window handling
@@ -109,6 +114,6 @@ let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
 CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
 CGEvent.tapEnable(tap: tap, enable: true)
 
-print("✅ CmdTabMax running.")
+print("Event tap created, run loop starting")
 
 RunLoop.main.run()
