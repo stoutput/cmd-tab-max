@@ -13,17 +13,22 @@ private let skippedBundleIDs: Set<String> = [
 // MARK: - Accessibility permission check
 
 func requireAccessibility() {
-    // Retry silently first — TCC may not be ready immediately at login.
+    // Retry silently — TCC may not be ready immediately at login.
     for _ in 0..<20 {
         if AXIsProcessTrusted() { return }
         Thread.sleep(forTimeInterval: 0.5)
     }
+
+    // Show the System Settings prompt, then poll until the user grants.
+    // Polling and continuing in-process avoids the TCC propagation race
+    // that occurs when we exit and KeepAlive restarts us too quickly.
     print("Accessibility not granted — opening System Settings")
-    // Still not trusted after 10 seconds — prompt and wait.
     let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
     AXIsProcessTrustedWithOptions(opts)
-    while !AXIsProcessTrusted() { Thread.sleep(forTimeInterval: 3) }
-    print("Accessibility granted")
+    while !AXIsProcessTrusted() {
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+    print("Accessibility granted — continuing")
 }
 
 // MARK: - Window handling
