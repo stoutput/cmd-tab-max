@@ -6,7 +6,6 @@ setbuf(stdout, nil)
 
 private let tabKeyCode: Int64 = 48
 private let skippedBundleIDs: Set<String> = [
-    "com.apple.finder",
     "com.apple.systemuiserver",
 ]
 
