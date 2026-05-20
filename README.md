@@ -9,7 +9,7 @@ MacOS, annoyingly, does not restore windows when you Cmd-Tab to them. This fixes
 curl -fsSL https://raw.githubusercontent.com/stoutput/cmd-tab-max/main/install.sh | bash
 ```
 
-On first launch you'll be prompted to grant Accessibility permission — required for the keyboard event tap.
+You'll be prompted to grant Accessibility permissions — required for the keyboard event tap.
 
 ## Uninstall
 
