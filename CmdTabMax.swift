@@ -33,7 +33,7 @@ func requireAccessibility() {
 
 // MARK: - Window handling
 
-func restoreMinimized(app: NSRunningApplication) {
+func ensureVisibleWindow(app: NSRunningApplication) {
     guard !skippedBundleIDs.contains(app.bundleIdentifier ?? "") else { return }
 
     let axApp = AXUIElementCreateApplication(app.processIdentifier)
@@ -42,20 +42,46 @@ func restoreMinimized(app: NSRunningApplication) {
     guard AXUIElementCopyAttributeValue(axApp, kAXWindowsAttribute as CFString, &windowsRef) == .success,
           let windows = windowsRef as? [AXUIElement] else { return }
 
+    var standardWindows: [AXUIElement] = []
+    var minimizedWindows: [AXUIElement] = []
     for window in windows {
         var roleRef: CFTypeRef?
         AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleRef)
         guard (roleRef as? String) == kAXWindowRole as String else { continue }
+        standardWindows.append(window)
 
         var minRef: CFTypeRef?
         let isMinimized = AXUIElementCopyAttributeValue(window, kAXMinimizedAttribute as CFString, &minRef) == .success
             && minRef != nil
             && CFBooleanGetValue((minRef as! CFBoolean))
-
         if isMinimized {
-            AXUIElementSetAttributeValue(window, kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+            minimizedWindows.append(window)
         }
     }
+
+    if standardWindows.isEmpty {
+        openNewWindow(for: app)
+        return
+    }
+
+    // Only unminimize when every window is minimized — otherwise the
+    // already-visible window the user expected is brought forward by the
+    // normal app activation.
+    if minimizedWindows.count == standardWindows.count {
+        AXUIElementSetAttributeValue(minimizedWindows[0], kAXMinimizedAttribute as CFString, kCFBooleanFalse)
+    }
+}
+
+private let nKeyCode: CGKeyCode = 0x2D
+
+func openNewWindow(for app: NSRunningApplication) {
+    let src = CGEventSource(stateID: .hidSystemState)
+    guard let down = CGEvent(keyboardEventSource: src, virtualKey: nKeyCode, keyDown: true),
+          let up = CGEvent(keyboardEventSource: src, virtualKey: nKeyCode, keyDown: false) else { return }
+    down.flags = .maskCommand
+    up.flags = .maskCommand
+    down.postToPid(app.processIdentifier)
+    up.postToPid(app.processIdentifier)
 }
 
 // MARK: - Event tap
@@ -92,7 +118,7 @@ NSWorkspace.shared.notificationCenter.addObserver(
     expectingSwitch = false
     guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
             as? NSRunningApplication else { return }
-    restoreMinimized(app: app)
+    ensureVisibleWindow(app: app)
 }
 
 // MARK: - Entry point

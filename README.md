@@ -20,9 +20,13 @@ rm ~/Library/LaunchAgents/com.stoutput.cmdtabmax.plist /usr/local/bin/CmdTabMax
 
 ## How it works
 
-CmdTabMax installs a global keyboard event tap. When it detects Cmd being released after a Cmd-Tab sequence, it injects the Option modifier into that event before the system processes it. This triggers macOS's built-in App Switcher behaviour for Option+Cmd-release, which restores any minimized windows of the switched-to app. The Option key is then released 50ms later so it doesn't bleed into the new app.
+CmdTabMax installs a global keyboard event tap to detect Cmd-Tab releases, then watches `NSWorkspace` for the resulting app activation. When the switched-to app activates, it inspects the app's windows via the Accessibility API and:
 
-No private frameworks. No window resizing via Accessibility API.
+- if a non-minimized window already exists, does nothing (normal app activation brings it to the front);
+- if every window is minimized, unminimizes one;
+- if no windows exist at all, posts Cmd+N to the app to open a new one.
+
+No private frameworks.
 
 ## Build from source
 
