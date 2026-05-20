@@ -1,5 +1,5 @@
 # CmdTabMax
-<img src="https://img.shields.io/badge/stability-stable-green.svg?color=%23307ABE&style=flat-square"> <img src="https://img.shields.io/github/languages/code-size/stoutput/cmd-tab-max.svg?color=%23307ABE&style=flat-square"> <img src="https://img.shields.io/github/downloads/stoutput/cmd-tab-max/total.svg?style=flat-square">
+<img src="https://img.shields.io/badge/stability-stable-green.svg?color=%23307ABE&style=flat-square"> <img src="https://img.shields.io/github/v/release/stoutput/cmd-tab-max.svg?style=flat-square"> <img src="https://img.shields.io/github/languages/code-size/stoutput/cmd-tab-max.svg?color=%23307ABE&style=flat-square"> <img src="https://img.shields.io/github/downloads/stoutput/cmd-tab-max/total.svg?style=flat-square">
 
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Y8Y81X7LER)
