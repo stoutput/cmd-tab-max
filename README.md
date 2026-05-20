@@ -3,7 +3,7 @@
 
 MacOS, annoyingly, does not restore windows when you Cmd-Tab to them. This fixes that.
 
-## Install
+## Install/Update
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/stoutput/cmd-tab-max/main/install.sh | bash
